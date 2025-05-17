@@ -22,6 +22,7 @@ const nextConfig = {
     NEXT_PUBLIC_MEDUSA_BACKEND_URL: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "https://backend-production-1aec.up.railway.app",
     MEDUSA_BACKEND_URL: process.env.MEDUSA_BACKEND_URL || process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "https://backend-production-1aec.up.railway.app",
     NEXT_PUBLIC_DEFAULT_REGION: "dk",
+    NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "pk_01HNHNZ3YB04JZQR3YVFP0FC49",
   },
   images: {
     remotePatterns: [
