@@ -13,6 +13,7 @@ COPY . .
 ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=https://backend-production-1aec.up.railway.app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_BUILD_PRODUCT_FETCH=true
+ENV NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_14fd58d207ae2de18706dc8fcd42880b7ff798c8e5d066cb07962d419f35669a
 
 # Build application
 RUN npm run build
@@ -27,6 +28,7 @@ ENV NODE_ENV=production
 ENV PORT=8000
 ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=https://backend-production-1aec.up.railway.app
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_14fd58d207ae2de18706dc8fcd42880b7ff798c8e5d066cb07962d419f35669a
 
 # Copy built application
 COPY --from=builder /app/public ./public
