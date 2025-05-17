@@ -9,6 +9,11 @@ RUN npm ci --legacy-peer-deps
 # Copy all files
 COPY . .
 
+# Set build-time environment variables to prevent connection errors
+ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=https://backend-production-1aec.up.railway.app
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV SKIP_BUILD_PRODUCT_FETCH=true
+
 # Build application
 RUN npm run build
 
@@ -21,6 +26,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8000
 ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=https://backend-production-1aec.up.railway.app
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Copy built application
 COPY --from=builder /app/public ./public

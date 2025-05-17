@@ -18,73 +18,104 @@ type Props = {
 export const PRODUCT_LIMIT = 12
 
 export async function generateStaticParams() {
-  const { collections } = await listCollections({
-    fields: "*products",
-  })
-
-  if (!collections) {
+  // Skip static generation during build time if the environment variable is set
+  if (process.env.SKIP_BUILD_PRODUCT_FETCH === "true") {
     return []
   }
 
-  const countryCodes = await listRegions().then(
-    (regions: StoreRegion[]) =>
-      regions
-        ?.map((r) => r.countries?.map((c) => c.iso_2))
-        .flat()
-        .filter(Boolean) as string[]
-  )
+  try {
+    const { collections } = await listCollections({
+      fields: "*products",
+    })
 
-  const collectionHandles = collections.map(
-    (collection: StoreCollection) => collection.handle
-  )
+    if (!collections) {
+      return []
+    }
 
-  const staticParams = countryCodes
-    ?.map((countryCode: string) =>
-      collectionHandles.map((handle: string | undefined) => ({
-        countryCode,
-        handle,
-      }))
+    const countryCodes = await listRegions().then(
+      (regions: StoreRegion[]) =>
+        regions
+          ?.map((r) => r.countries?.map((c) => c.iso_2))
+          .flat()
+          .filter(Boolean) as string[]
     )
-    .flat()
 
-  return staticParams
+    const collectionHandles = collections.map(
+      (collection: StoreCollection) => collection.handle
+    )
+
+    const staticParams = countryCodes
+      ?.map((countryCode: string) =>
+        collectionHandles.map((handle: string | undefined) => ({
+          countryCode,
+          handle,
+        }))
+      )
+      .flat()
+
+    return staticParams
+  } catch (error) {
+    console.error("Error generating static params for collections:", error)
+    return []
+  }
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
-  const params = await props.params
-  const collection = await getCollectionByHandle(params.handle)
+  try {
+    const params = await props.params
+    const collection = await getCollectionByHandle(params.handle)
 
-  if (!collection) {
-    notFound()
+    if (!collection) {
+      return {
+        title: "Collection | Medusa Store",
+        description: "Collection not found",
+      }
+    }
+
+    const metadata = {
+      title: `${collection.title} | Medusa Store`,
+      description: `${collection.title} collection`,
+    } as Metadata
+
+    return metadata
+  } catch (error) {
+    console.error("Error generating metadata for collection:", error)
+    return {
+      title: "Collection | Medusa Store",
+      description: "Collection",
+    }
   }
-
-  const metadata = {
-    title: `${collection.title} | Medusa Store`,
-    description: `${collection.title} collection`,
-  } as Metadata
-
-  return metadata
 }
 
 export default async function CollectionPage(props: Props) {
-  const searchParams = await props.searchParams
-  const params = await props.params
-  const { sortBy, page } = searchParams
+  try {
+    const searchParams = await props.searchParams
+    const params = await props.params
+    const { sortBy, page } = searchParams
 
-  const collection = await getCollectionByHandle(params.handle).then(
-    (collection: StoreCollection) => collection
-  )
+    const collection = await getCollectionByHandle(params.handle)
 
-  if (!collection) {
-    notFound()
+    if (!collection) {
+      notFound()
+    }
+
+    return (
+      <CollectionTemplate
+        collection={collection}
+        page={page}
+        sortBy={sortBy}
+        countryCode={params.countryCode}
+      />
+    )
+  } catch (error) {
+    console.error("Error rendering collection page:", error)
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <h1 className="text-2xl font-bold">Collection not available</h1>
+        <p className="text-gray-500 mt-4">
+          This collection will be available after connecting to the Medusa backend.
+        </p>
+      </div>
+    )
   }
-
-  return (
-    <CollectionTemplate
-      collection={collection}
-      page={page}
-      sortBy={sortBy}
-      countryCode={params.countryCode}
-    />
-  )
 }

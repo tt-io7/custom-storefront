@@ -47,4 +47,10 @@ const nextConfig = {
   },
 }
 
+// Skip static generation during Docker build
+if (process.env.SKIP_BUILD_PRODUCT_FETCH === "true") {
+  nextConfig.staticPageGenerationTimeout = 1
+  nextConfig.output = "standalone"
+}
+
 module.exports = nextConfig

@@ -9,6 +9,11 @@ type Props = {
 }
 
 export async function generateStaticParams() {
+  // Skip static generation during build time if the environment variable is set
+  if (process.env.SKIP_BUILD_PRODUCT_FETCH === "true") {
+    return []
+  }
+
   try {
     const countryCodes = await listRegions().then((regions) =>
       regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
@@ -43,56 +48,82 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
-  const params = await props.params
-  const { handle } = params
-  const region = await getRegion(params.countryCode)
+  try {
+    const params = await props.params
+    const { handle } = params
+    const region = await getRegion(params.countryCode)
 
-  if (!region) {
-    notFound()
-  }
+    if (!region) {
+      return {
+        title: "Product | Medusa Store",
+        description: "Product not found",
+      }
+    }
 
-  const product = await listProducts({
-    countryCode: params.countryCode,
-    queryParams: { handle },
-  }).then(({ response }) => response.products[0])
+    const product = await listProducts({
+      countryCode: params.countryCode,
+      queryParams: { handle },
+    }).then(({ response }) => response.products[0])
 
-  if (!product) {
-    notFound()
-  }
+    if (!product) {
+      return {
+        title: "Product | Medusa Store",
+        description: "Product not found",
+      }
+    }
 
-  return {
-    title: `${product.title} | Medusa Store`,
-    description: `${product.title}`,
-    openGraph: {
+    return {
       title: `${product.title} | Medusa Store`,
       description: `${product.title}`,
-      images: product.thumbnail ? [product.thumbnail] : [],
-    },
+      openGraph: {
+        title: `${product.title} | Medusa Store`,
+        description: `${product.title}`,
+        images: product.thumbnail ? [product.thumbnail] : [],
+      },
+    }
+  } catch (error) {
+    console.error("Error generating metadata for product:", error)
+    return {
+      title: "Product | Medusa Store",
+      description: "Product details",
+    }
   }
 }
 
 export default async function ProductPage(props: Props) {
-  const params = await props.params
-  const region = await getRegion(params.countryCode)
+  try {
+    const params = await props.params
+    const region = await getRegion(params.countryCode)
 
-  if (!region) {
-    notFound()
+    if (!region) {
+      notFound()
+    }
+
+    const pricedProduct = await listProducts({
+      countryCode: params.countryCode,
+      queryParams: { handle: params.handle },
+    }).then(({ response }) => response.products[0])
+
+    if (!pricedProduct) {
+      notFound()
+    }
+
+    return (
+      <ProductTemplate
+        product={pricedProduct}
+        region={region}
+        countryCode={params.countryCode}
+      />
+    )
+  } catch (error) {
+    console.error("Error rendering product page:", error)
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <h1 className="text-2xl font-bold">Product not available</h1>
+        <p className="text-gray-500 mt-4">
+          This product will be available after connecting to the Medusa backend.
+        </p>
+      </div>
+    )
   }
-
-  const pricedProduct = await listProducts({
-    countryCode: params.countryCode,
-    queryParams: { handle: params.handle },
-  }).then(({ response }) => response.products[0])
-
-  if (!pricedProduct) {
-    notFound()
-  }
-
-  return (
-    <ProductTemplate
-      product={pricedProduct}
-      region={region}
-      countryCode={params.countryCode}
-    />
-  )
 }
