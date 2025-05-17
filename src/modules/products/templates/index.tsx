@@ -26,6 +26,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
     return notFound()
   }
 
+  // Log product for debugging
+  console.log(`Rendering ProductTemplate for: ${product.title} (${product.id})`)
+
   return (
     <>
       <div

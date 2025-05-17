@@ -1,11 +1,11 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { listProducts } from "@lib/data/products"
-import { getRegion, listRegions } from "@lib/data/regions"
+import { getRegion } from "@lib/data/regions"
 import ProductTemplate from "@modules/products/templates"
 
 type Props = {
-  params: Promise<{ countryCode: string; handle: string }>
+  params: { handle: string }
 }
 
 // Force dynamic rendering for this page
@@ -15,9 +15,10 @@ export const revalidate = 0
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   try {
-    const params = await props.params
-    const { handle } = params
-    const region = await getRegion(params.countryCode)
+    const { handle } = props.params
+    // Default to "us" for region compatibility
+    const countryCode = "us"
+    const region = await getRegion(countryCode)
 
     if (!region) {
       return {
@@ -27,7 +28,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     }
 
     const product = await listProducts({
-      countryCode: params.countryCode,
+      countryCode,
       queryParams: { handle },
     }).then(({ response }) => response.products[0])
 
@@ -58,12 +59,14 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function ProductPage(props: Props) {
   try {
-    const params = await props.params
+    const { handle } = props.params
+    // Default to "us" for region compatibility
+    const countryCode = "us"
     
     // Use a fallback region if we can't get the actual one
     let region = null
     try {
-      region = await getRegion(params.countryCode)
+      region = await getRegion(countryCode)
     } catch (error) {
       console.error("Error fetching region:", error)
     }
@@ -84,8 +87,8 @@ export default async function ProductPage(props: Props) {
     let pricedProduct = null
     try {
       const productResponse = await listProducts({
-        countryCode: params.countryCode,
-        queryParams: { handle: params.handle },
+        countryCode,
+        queryParams: { handle },
       })
       
       pricedProduct = productResponse.response.products[0]
@@ -108,7 +111,7 @@ export default async function ProductPage(props: Props) {
       <ProductTemplate
         product={pricedProduct}
         region={region}
-        countryCode={params.countryCode}
+        countryCode={countryCode}
       />
     )
   } catch (error) {
@@ -122,4 +125,4 @@ export default async function ProductPage(props: Props) {
       </div>
     )
   }
-}
+} 

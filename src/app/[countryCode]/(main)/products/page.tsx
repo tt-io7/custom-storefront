@@ -13,6 +13,9 @@ type Props = {
     sortBy?: SortOptions
     page?: string
     q?: string
+    category?: string
+    collection?: string
+    price?: string
   }>
 }
 
@@ -34,6 +37,9 @@ export default async function ProductsPage({
   const page = awaitedSearchParams.page
   const sortBy = awaitedSearchParams.sortBy
   const q = awaitedSearchParams.q
+  const categoryId = awaitedSearchParams.category
+  const collectionId = awaitedSearchParams.collection
+  const priceOrder = awaitedSearchParams.price
   
   const region = await getRegion(countryCode)
   
@@ -67,6 +73,21 @@ export default async function ProductsPage({
       default:
         queryParams.order = "created_at:desc"
     }
+  } else if (priceOrder) {
+    // Handle price filter from sidebar
+    queryParams.order = priceOrder === 'asc' 
+      ? "variants.prices.amount:asc"
+      : "variants.prices.amount:desc"
+  }
+  
+  // Add category filter if provided
+  if (categoryId) {
+    queryParams.category_id = categoryId
+  }
+  
+  // Add collection filter if provided
+  if (collectionId) {
+    queryParams.collection_id = collectionId
   }
   
   // Add search query if provided

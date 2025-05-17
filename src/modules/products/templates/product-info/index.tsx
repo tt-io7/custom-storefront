@@ -7,6 +7,9 @@ type ProductInfoProps = {
 }
 
 const ProductInfo = ({ product }: ProductInfoProps) => {
+  // Log the product description for debugging
+  console.log(`Rendering product info for: ${product.title} with description: ${product.description?.substring(0, 50)}...`)
+  
   return (
     <div id="product-info">
       <div className="flex flex-col gap-y-4 lg:max-w-[500px] mx-auto">

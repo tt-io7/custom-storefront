@@ -22,7 +22,7 @@ export default function RootPage() {
             __html: `
               // Only redirect in browser, not during Railway's health check
               if (typeof window !== 'undefined') {
-                window.location.href = '/${process.env.NEXT_PUBLIC_DEFAULT_REGION || "us"}';
+                window.location.href = '/store';
               }
             `,
           }}

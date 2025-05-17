@@ -44,6 +44,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "backend-production-1aec.up.railway.app",
       },
+      {
+        protocol: "https",
+        hostname: "**.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.railway.app",
+      },
     ],
   },
   // Increase timeout for static generation

@@ -2,9 +2,10 @@
 
 import { HttpTypes } from "@medusajs/types"
 import ProductPreview from "@modules/products/components/product-preview"
-import RefinementList from "@modules/store/components/refinement-list"
 import { useState } from "react"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
+import { useCallback } from "react"
 
 type ProductListTemplateProps = {
   region: HttpTypes.StoreRegion
@@ -34,6 +35,37 @@ const ProductListTemplate = ({
   const [currentProducts, setCurrentProducts] = useState(products)
   const [isLoading, setIsLoading] = useState(false)
   const [hasMore, setHasMore] = useState(!!nextPage)
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  
+  // For price filter
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000])
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  
+  const createQueryString = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams)
+      if (value === null || value === '') {
+        params.delete(name)
+      } else {
+        params.set(name, value)
+      }
+      return params.toString()
+    },
+    [searchParams]
+  )
+
+  const handleCategoryFilter = (categoryId: string) => {
+    setSelectedCategory(categoryId === selectedCategory ? null : categoryId)
+    const query = createQueryString('category', categoryId === selectedCategory ? '' : categoryId)
+    router.push(`${pathname}?${query}`)
+  }
+
+  const handlePriceFilter = (option: string) => {
+    const query = createQueryString('price', option)
+    router.push(`${pathname}?${query}`)
+  }
 
   const handleLoadMore = async () => {
     if (!nextPage || isLoading) return
@@ -73,22 +105,94 @@ const ProductListTemplate = ({
             <h1 className="text-3xl font-bold text-gray-900">Shop All Products</h1>
             <p className="text-gray-600 mt-1">Browse our collection of {total} products</p>
           </div>
-          <div className="mt-4 sm:mt-0">
-            <RefinementList 
-              sortBy={params.sortBy || "created_at"}
-              data-testid="product-refinement"
-            />
-          </div>
         </div>
         
         {/* Products Grid */}
         <div className="flex flex-col lg:flex-row">
-          {/* Sidebar for filters would go here */}
+          {/* Sidebar for filters */}
           <div className="hidden lg:block lg:w-64 mr-8">
             <div className="sticky top-24">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Filters</h3>
-              <div className="border-t border-gray-200 pt-4">
-                <p className="text-sm text-gray-500">Filter options would go here</p>
+              
+              {/* Categories Filter */}
+              <div className="border-t border-gray-200 pt-4 pb-6">
+                <h4 className="text-base font-medium text-gray-900 mb-3">Categories</h4>
+                <div className="space-y-2">
+                  {categories && categories.length > 0 ? (
+                    categories.map((category) => (
+                      <div key={category.id} className="flex items-center">
+                        <input
+                          id={`category-${category.id}`}
+                          name="category"
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          checked={selectedCategory === category.id}
+                          onChange={() => handleCategoryFilter(category.id)}
+                        />
+                        <label
+                          htmlFor={`category-${category.id}`}
+                          className="ml-3 text-sm text-gray-600"
+                        >
+                          {category.name}
+                        </label>
+                      </div>
+                    ))
+                  ) : collections && collections.length > 0 ? (
+                    collections.map((collection) => (
+                      <div key={collection.id} className="flex items-center">
+                        <input
+                          id={`collection-${collection.id}`}
+                          name="collection"
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          checked={selectedCategory === collection.id}
+                          onChange={() => handleCategoryFilter(collection.id)}
+                        />
+                        <label
+                          htmlFor={`collection-${collection.id}`}
+                          className="ml-3 text-sm text-gray-600"
+                        >
+                          {collection.title}
+                        </label>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No categories available</p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Price Filter */}
+              <div className="border-t border-gray-200 pt-4 pb-6">
+                <h4 className="text-base font-medium text-gray-900 mb-3">Price</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <input
+                      id="price-low-high"
+                      name="price"
+                      type="radio"
+                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      onChange={() => handlePriceFilter('asc')}
+                      checked={params.sortBy === 'price_asc'}
+                    />
+                    <label htmlFor="price-low-high" className="ml-3 text-sm text-gray-600">
+                      Price: Low → High
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      id="price-high-low"
+                      name="price"
+                      type="radio"
+                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      onChange={() => handlePriceFilter('desc')}
+                      checked={params.sortBy === 'price_desc'}
+                    />
+                    <label htmlFor="price-high-low" className="ml-3 text-sm text-gray-600">
+                      Price: High → Low
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

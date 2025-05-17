@@ -2,7 +2,7 @@
 
 import { Container, clx } from "@medusajs/ui"
 import Image from "next/image"
-import React from "react"
+import React, { useState } from "react"
 
 import PlaceholderImage from "@modules/common/icons/placeholder-image"
 
@@ -25,6 +25,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
   "data-testid": dataTestid,
 }) => {
   const initialImage = thumbnail || images?.[0]?.url
+  const [imageError, setImageError] = useState(false)
 
   return (
     <Container
@@ -43,7 +44,12 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       )}
       data-testid={dataTestid}
     >
-      <ImageOrPlaceholder image={initialImage} size={size} />
+      <ImageOrPlaceholder 
+        image={initialImage} 
+        size={size} 
+        onError={() => setImageError(true)}
+        showPlaceholder={imageError} 
+      />
     </Container>
   )
 }
@@ -51,18 +57,33 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
 const ImageOrPlaceholder = ({
   image,
   size,
-}: Pick<ThumbnailProps, "size"> & { image?: string }) => {
-  return image ? (
-    <Image
-      src={image}
-      alt="Thumbnail"
-      className="absolute inset-0 object-cover object-center"
-      draggable={false}
-      quality={50}
-      sizes="(max-width: 576px) 280px, (max-width: 768px) 360px, (max-width: 992px) 480px, 800px"
-      fill
-    />
-  ) : (
+  onError,
+  showPlaceholder = false
+}: Pick<ThumbnailProps, "size"> & { 
+  image?: string, 
+  onError?: () => void,
+  showPlaceholder?: boolean 
+}) => {
+  // If we have an image and no errors, show the image
+  if (image && !showPlaceholder) {
+    return (
+      <Image
+        src={image}
+        alt="Thumbnail"
+        className="absolute inset-0 object-cover object-center"
+        draggable={false}
+        quality={50}
+        sizes="(max-width: 576px) 280px, (max-width: 768px) 360px, (max-width: 992px) 480px, 800px"
+        fill
+        onError={onError}
+        loading="eager"
+        priority
+      />
+    )
+  }
+  
+  // Otherwise show placeholder
+  return (
     <div className="w-full h-full absolute inset-0 flex items-center justify-center">
       <PlaceholderImage size={size === "small" ? 16 : 24} />
     </div>

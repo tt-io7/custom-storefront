@@ -2,7 +2,7 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 import { getCollectionByHandle, listCollections } from "@lib/data/collections"
-import { listRegions } from "@lib/data/regions"
+import { getRegion, listRegions } from "@lib/data/regions"
 import { StoreCollection, StoreRegion } from "@medusajs/types"
 import CollectionTemplate from "@modules/collections/templates"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
@@ -14,6 +14,11 @@ type Props = {
     sortBy?: SortOptions
   }>
 }
+
+// Force dynamic rendering for this page
+export const dynamic = "force-dynamic"
+export const fetchCache = "default-no-store"
+export const revalidate = 0
 
 export const PRODUCT_LIMIT = 12
 
@@ -93,10 +98,22 @@ export default async function CollectionPage(props: Props) {
     const params = await props.params
     const { sortBy, page } = searchParams
 
-    const collection = await getCollectionByHandle(params.handle)
+    let collection = null
+    try {
+      collection = await getCollectionByHandle(params.handle)
+    } catch (error) {
+      console.error("Error fetching collection:", error)
+    }
 
     if (!collection) {
-      notFound()
+      return (
+        <div className="flex flex-col items-center justify-center py-24">
+          <h1 className="text-2xl font-bold">Collection not available</h1>
+          <p className="text-gray-500 mt-4">
+            This collection will be available after connecting to the Medusa backend.
+          </p>
+        </div>
+      )
     }
 
     return (
