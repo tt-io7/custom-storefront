@@ -5,20 +5,55 @@ let MEDUSA_BACKEND_URL = "http://localhost:9000"
 
 if (process.env.MEDUSA_BACKEND_URL) {
   MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL
+} else if (process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL) {
+  MEDUSA_BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
 }
 
 // Get the API key from environment variables
 const PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
 // Timeout for requests to Medusa server
-const REQUEST_TIMEOUT = 5000 // 5 seconds 
+const REQUEST_TIMEOUT = 10000 // 10 seconds 
 
-// Initialize the SDK client
+// Initialize the SDK client with error handling
 export const sdk = new Medusa({
   baseUrl: MEDUSA_BACKEND_URL,
   debug: process.env.NODE_ENV === "development",
   publishableKey: PUBLISHABLE_API_KEY,
+  maxRetries: 3,
+  timeout: REQUEST_TIMEOUT,
 })
+
+// Create a wrapped client with better error handling
+const originalFetch = sdk.client.fetch.bind(sdk.client)
+sdk.client.fetch = async function wrappedFetch<T>(path: string, options: any = {}): Promise<T> {
+  try {
+    return await originalFetch<T>(path, {
+      ...options,
+      timeout: REQUEST_TIMEOUT,
+    }) 
+  } catch (error) {
+    console.error(`Error fetching ${path}:`, error)
+    
+    // For certain endpoints, provide fallback data to prevent UI errors
+    if (path.includes('/store/regions')) {
+      return {
+        regions: [
+          {
+            id: "fallback_region",
+            name: "Fallback Region",
+            countries: [
+              { id: "us", iso_2: "us", display_name: "United States" }
+            ]
+          }
+        ]
+      } as unknown as T
+    }
+    
+    // Re-throw the error for other endpoints
+    throw error
+  }
+}
 
 // Add a convenient function to check server connectivity
 export async function checkMedusaServerStatus(): Promise<{

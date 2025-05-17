@@ -18,7 +18,11 @@ export const listProducts = async ({
   regionId,
 }: {
   pageParam?: number
-  queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductParams
+  queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductParams & {
+    category_id?: string;
+    collection_id?: string;
+    handle?: string;
+  }
   countryCode?: string
   regionId?: string
 }): Promise<{
@@ -26,17 +30,17 @@ export const listProducts = async ({
   nextPage: number | null
   queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductParams
 }> => {
-  if (!countryCode && !regionId) {
-    throw new Error("Country code or region ID is required")
-  }
-
-  const limit = queryParams?.limit || 12
-  const _pageParam = Math.max(pageParam, 1)
-  const offset = (_pageParam === 1) ? 0 : (_pageParam - 1) * limit;
-
-  let region: HttpTypes.StoreRegion | undefined | null
-
   try {
+    if (!countryCode && !regionId) {
+      throw new Error("Country code or region ID is required")
+    }
+
+    const limit = queryParams?.limit || 12
+    const _pageParam = Math.max(pageParam, 1)
+    const offset = (_pageParam === 1) ? 0 : (_pageParam - 1) * limit;
+
+    let region: HttpTypes.StoreRegion | undefined | null
+
     if (countryCode) {
       region = await getRegion(countryCode)
     } else {
@@ -44,93 +48,104 @@ export const listProducts = async ({
     }
 
     if (!region) {
+      console.error(`Region not found for ${countryCode || regionId}`)
       return {
         response: { products: [], count: 0 },
         nextPage: null,
       }
     }
 
-    const headers = {
-      ...(await getAuthHeaders()),
+    // Build query according to Medusa API v2 specification
+    const queryObject: Record<string, any> = {
+      limit,
+      offset,
+      region_id: region?.id
     }
-
-    const next = {
-      ...(await getCacheOptions("products")),
-      revalidate: 60, // revalidate every minute
+    
+    // Only include valid queryParams properties
+    if (queryParams) {
+      // Safely copy queryParams as a Record to avoid TypeScript errors
+      const params = queryParams as Record<string, any>;
+      
+      // Add standard Medusa API parameters according to documentation
+      if (params.ids) queryObject.ids = params.ids;
+      if (params.q) queryObject.q = params.q;
+      if (params.collection_id) {
+        queryObject.collection_id = params.collection_id;
+        console.log(`Filtering by collection: ${params.collection_id}`);
+      }
+      if (params.tags) queryObject.tags = params.tags;
+      if (params.price_list_id) queryObject.price_list_id = params.price_list_id;
+      if (params.sales_channel_id) queryObject.sales_channel_id = params.sales_channel_id;
+      if (params.category_id) {
+        queryObject.category_id = params.category_id;
+        console.log(`Filtering by category: ${params.category_id}`);
+      }
+      if (params.include_category_children) queryObject.include_category_children = params.include_category_children;
+      if (params.type_id) queryObject.type_id = params.type_id;
+      if (params.created_at) queryObject.created_at = params.created_at;
+      if (params.updated_at) queryObject.updated_at = params.updated_at;
+      if (params.handle) {
+        queryObject.handle = params.handle;
+        console.log(`Fetching product with handle: ${params.handle}`);
+      }
     }
-
+    
+    // Remove any properties with undefined or empty string values
+    Object.keys(queryObject).forEach(key => {
+      if (queryObject[key] === undefined || queryObject[key] === '') {
+        delete queryObject[key];
+      }
+    });
+    
+    // Try to directly call the API without using cookies if possible
     try {
-      // Build query according to Medusa API v2 specification
-      const queryObject: Record<string, any> = {
-        limit,
-        offset,
-        region_id: region?.id
-      }
+      const query = new URLSearchParams();
       
-      // Only include valid queryParams properties
-      if (queryParams) {
-        // Safely copy queryParams as a Record to avoid TypeScript errors
-        const params = queryParams as Record<string, any>;
-        
-        // Add standard Medusa API parameters according to documentation
-        if (params.ids) queryObject.ids = params.ids;
-        if (params.q) queryObject.q = params.q;
-        if (params.collection_id) queryObject.collection_id = params.collection_id;
-        if (params.tags) queryObject.tags = params.tags;
-        if (params.price_list_id) queryObject.price_list_id = params.price_list_id;
-        if (params.sales_channel_id) queryObject.sales_channel_id = params.sales_channel_id;
-        if (params.category_id) queryObject.category_id = params.category_id;
-        if (params.include_category_children) queryObject.include_category_children = params.include_category_children;
-        if (params.type_id) queryObject.type_id = params.type_id;
-        if (params.created_at) queryObject.created_at = params.created_at;
-        if (params.updated_at) queryObject.updated_at = params.updated_at;
-      }
-      
-      // Remove any properties with undefined or empty string values
-      Object.keys(queryObject).forEach(key => {
-        if (queryObject[key] === undefined || queryObject[key] === '') {
-          delete queryObject[key];
+      // Add all query parameters
+      Object.entries(queryObject).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach((v) => query.append(key, v));
+        } else if (value !== undefined && value !== null) {
+          query.append(key, value.toString());
         }
       });
       
-      console.log("Fetching products with query:", queryObject);
+      // Convert query to string
+      const queryString = query.toString();
       
-      const result = await sdk.client
-        .fetch<{ products: HttpTypes.StoreProduct[]; count: number }>(
-          `/store/products`,
-          {
-            method: "GET",
-            query: queryObject,
-            headers,
-            next,
-            cache: "force-cache",
-          }
-        )
-        
-      const nextPage = result.count > offset + limit ? pageParam + 1 : null
-
+      // Log query for debugging
+      console.log(`Fetching products with query: ${queryString}`);
+      
+      // Make the API call with the SDK
+      const { products = [], count = 0 } = await sdk.store.product.list(queryObject);
+      
+      console.log(`Found ${products.length} products`);
+      
+      // Calculate if there's a next page
+      const nextPage = count > offset + limit ? _pageParam + 1 : null;
+      
       return {
-        response: {
-          products: result.products,
-          count: result.count,
-        },
+        response: { products, count },
         nextPage,
         queryParams,
-      }
+      };
     } catch (error) {
-      console.error("Error fetching products:", error)
+      console.error("Error in listProducts:", error);
+      
+      // Return empty results in case of an error
       return {
         response: { products: [], count: 0 },
         nextPage: null,
-        queryParams,
       }
     }
   } catch (error) {
-    console.error("Error in listProducts:", error)
+    console.error("Error in listProducts:", error);
+    
+    // Fallback to empty response on any error
     return {
       response: { products: [], count: 0 },
       nextPage: null,
-      queryParams,
     }
   }
 }
