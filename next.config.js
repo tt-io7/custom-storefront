@@ -21,6 +21,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_MEDUSA_BACKEND_URL: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "https://backend-production-1aec.up.railway.app",
     MEDUSA_BACKEND_URL: process.env.MEDUSA_BACKEND_URL || process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "https://backend-production-1aec.up.railway.app",
+    NEXT_PUBLIC_DEFAULT_REGION: "dk",
   },
   images: {
     remotePatterns: [

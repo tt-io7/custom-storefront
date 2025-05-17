@@ -1,4 +1,5 @@
 import { Metadata } from "next"
+import { redirect } from "next/navigation"
 
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import StoreTemplate from "@modules/store/templates"
@@ -15,17 +16,7 @@ type Params = {
   }
 }
 
-export default async function StorePage(props: Params) {
-  const { sortBy, page } = props.searchParams || {}
-  
-  // Use default US as country code for compatibility
-  const countryCode = "us"
-
-  return (
-    <StoreTemplate
-      sortBy={sortBy}
-      page={page}
-      countryCode={countryCode}
-    />
-  )
+export default function StorePage() {
+  // Redirect to the country code version
+  redirect('/dk/store')
 } 

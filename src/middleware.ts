@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = process.env.MEDUSA_BACKEND_URL
 const PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
-const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "us"
+const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "dk"
 
 const regionMapCache = {
   regionMap: new Map<string, HttpTypes.StoreRegion>(),
@@ -90,13 +90,14 @@ async function getCountryCode(
       countryCode = regionMap.keys().next().value
     }
 
-    return countryCode
+    return countryCode || DEFAULT_REGION
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.error(
         "Middleware.ts: Error getting the country code. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL."
       )
     }
+    return DEFAULT_REGION
   }
 }
 
@@ -111,18 +112,81 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Get path without country code
-    const pathWithoutCountryCode = request.nextUrl.pathname.split('/').slice(2).join('/')
+    let redirectUrl = request.nextUrl.href
+    let response = NextResponse.redirect(redirectUrl, 307)
+    let cacheIdCookie = request.cookies.get("_medusa_cache_id")
+    let cacheId = cacheIdCookie?.value || crypto.randomUUID()
     
-    // If path starts with a country code, redirect to path without country code
-    if (request.nextUrl.pathname.startsWith('/us/')) {
-      const queryString = request.nextUrl.search ? request.nextUrl.search : ""
-      const redirectUrl = `${request.nextUrl.origin}/${pathWithoutCountryCode}${queryString}`
-      return NextResponse.redirect(redirectUrl, 307)
+    const regionMap = await getRegionMap(cacheId)
+    const countryCode = regionMap && (await getCountryCode(request, regionMap))
+    
+    const urlPath = request.nextUrl.pathname.split("/")
+    const urlHasCountryCode = urlPath[1] === countryCode
+    
+    // Handle special case for root URL without country code
+    if (urlPath.length === 2 && urlPath[1] === "store") {
+      // Redirect /store to /dk/store
+      redirectUrl = `${request.nextUrl.origin}/${countryCode}/store${request.nextUrl.search}`
+      response = NextResponse.redirect(redirectUrl, 307)
+      response.cookies.set("_medusa_cache_id", cacheId, {
+        maxAge: 60 * 60 * 24,
+      })
+      return response
     }
     
-    // For all other paths, don't perform country code redirection
-    return NextResponse.next()
+    // Handle special case for product URLs without country code
+    if (urlPath.length >= 3 && urlPath[1] === "products") {
+      // Redirect /products/handle to /dk/products/handle
+      const newPath = `/${countryCode}/${urlPath.slice(1).join('/')}`
+      redirectUrl = `${request.nextUrl.origin}${newPath}${request.nextUrl.search}`
+      response = NextResponse.redirect(redirectUrl, 307)
+      response.cookies.set("_medusa_cache_id", cacheId, {
+        maxAge: 60 * 60 * 24,
+      })
+      return response
+    }
+    
+    // Handle case where URL has wrong country code
+    if (urlPath[1] && urlPath[1] !== countryCode && urlPath[1] !== "api" && !urlPath[1].includes(".")) {
+      // e.g., /us/store -> /dk/store
+      const newPath = `/${countryCode}/${urlPath.slice(2).join('/')}`
+      redirectUrl = `${request.nextUrl.origin}${newPath}${request.nextUrl.search}`
+      response = NextResponse.redirect(redirectUrl, 307)
+      response.cookies.set("_medusa_cache_id", cacheId, {
+        maxAge: 60 * 60 * 24,
+      })
+      return response
+    }
+    
+    // If URL has proper country code and has cache ID, allow through
+    if (urlHasCountryCode && cacheIdCookie) {
+      return NextResponse.next()
+    }
+    
+    // If URL has proper country code but no cache ID, set it
+    if (urlHasCountryCode && !cacheIdCookie) {
+      response.cookies.set("_medusa_cache_id", cacheId, {
+        maxAge: 60 * 60 * 24,
+      })
+      return response
+    }
+    
+    // For static assets
+    if (request.nextUrl.pathname.includes(".")) {
+      return NextResponse.next()
+    }
+    
+    // For cases where URL has no country code
+    const redirectPath = request.nextUrl.pathname === "/" ? "" : request.nextUrl.pathname
+    const queryString = request.nextUrl.search ? request.nextUrl.search : ""
+    
+    redirectUrl = `${request.nextUrl.origin}/${countryCode}${redirectPath}${queryString}`
+    response = NextResponse.redirect(redirectUrl, 307)
+    response.cookies.set("_medusa_cache_id", cacheId, {
+      maxAge: 60 * 60 * 24,
+    })
+    
+    return response
   } catch (error) {
     console.error("Middleware error:", error)
     // For any middleware errors, allow the request to proceed

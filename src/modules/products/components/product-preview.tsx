@@ -65,7 +65,7 @@ const ProductPreview = ({ product, region }: ProductPreviewProps) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="relative overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 ease-in-out group-hover:shadow-lg">
-        <Link href={`/products/${handle}`} className="block">
+        <Link href={`/dk/products/${handle}`} className="block">
           <div className="relative aspect-[3/4] w-full overflow-hidden">
             <Thumbnail thumbnail={thumbnail} size="full" />
             
@@ -155,7 +155,7 @@ const ProductPreview = ({ product, region }: ProductPreviewProps) => {
                 
                 <div className="flex gap-4">
                   <Link 
-                    href={`/products/${handle}`}
+                    href={`/dk/products/${handle}`}
                     className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                   >
                     View Details

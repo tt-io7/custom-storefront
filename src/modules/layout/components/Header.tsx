@@ -7,7 +7,7 @@ import SearchBar from './SearchBar'
 
 export default function Header() {
   const pathname = usePathname()
-  const [country, setCountry] = useState('us') // Default country
+  const [country, setCountry] = useState('dk') // Default country
   const [showSearch, setShowSearch] = useState(false)
 
   // Get country from pathname
@@ -16,6 +16,9 @@ export default function Header() {
       const match = pathname.match(/^\/([^\/]+)/)
       if (match && match[1] !== '[country]') {
         setCountry(match[1])
+      } else {
+        // If no country in path, ensure we use the default
+        setCountry('dk')
       }
     }
   }, [pathname])
@@ -37,6 +40,7 @@ export default function Header() {
           <nav className="hidden md:flex items-center justify-center flex-1">
             <div className="flex space-x-8">
               <Link className="text-sm font-medium text-gray-700 hover:text-primary" href={`/${country}`}>Home</Link>
+              <Link className="text-sm font-medium text-gray-700 hover:text-primary" href={`/${country}/store`}>Store</Link>
               <Link className="text-sm font-medium text-gray-700 hover:text-primary" href={`/${country}/products`}>Products</Link>
               <Link className="text-sm font-medium text-gray-700 hover:text-primary" href={`/${country}/categories`}>Categories</Link>
               <Link className="text-sm font-medium text-gray-700 hover:text-primary" href={`/${country}/about`}>About</Link>
