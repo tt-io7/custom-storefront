@@ -1,19 +1,10 @@
 import { Suspense } from "react"
 
 import { Inter } from "next/font/google"
-import "./globals.css"
-// TODO: Port these providers and components to the starter and update import paths accordingly
-// import { WishlistProvider } from "../modules/wishlist/context"
-// import { StoreProvider } from "../modules/store/context"
-// import { ErrorProvider } from "../modules/common/context"
-// import { CartContextProvider } from "../modules/cart/context"
-// import { AuthProvider } from "../modules/account/context"
-// import ErrorBoundary from "../modules/common/components/ErrorBoundary"
-// import Header from "../modules/layout/components/Header"
+import "../styles/globals.css"
 import Footer from "@modules/layout/templates/footer"
-import MobileMenu from "@modules/mobile-menu/templates"
-import Providers from "@modules/providers"
-import { StackProvider } from "app/[countryCode]/stack-provider"
+import { CartContextProvider } from "../modules/layout/context/cart-context"
+import { AuthProvider } from "../modules/layout/lib/context/auth-context"
 import LoadingBar from "@modules/common/components/loading-bar"
 
 export const metadata = {
@@ -49,9 +40,6 @@ export const metadata = {
   },
   metadataBase: new URL("http://localhost:3000"),
 }
-
-import { CartContextProvider } from "../modules/layout/context/cart-context"
-import { AuthProvider } from "../modules/layout/lib/context/auth-context"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -101,30 +89,25 @@ export default async function RootLayout({
         `}</style>
       </head>
       <body className={`${inter.variable} relative min-h-screen w-full overflow-x-hidden bg-ui-bg-base font-sans antialiased`}>
-        <Providers>
-          <StackProvider>
-            <div className="sticky top-0 z-50">
-              <LoadingBar />
+        <div className="sticky top-0 z-50">
+          <LoadingBar />
+        </div>
+        <div className="pb-[8rem]">
+          <main>
+            <div>
+              <Suspense>
+                <AuthProvider>
+                  <CartContextProvider>
+                    <div className="flex min-h-screen flex-col">
+                      {children}
+                    </div>
+                  </CartContextProvider>
+                </AuthProvider>
+              </Suspense>
             </div>
-            <div className="pb-[8rem]">
-              <main>
-                <div>
-                  <Suspense>
-                    <AuthProvider>
-                      <CartContextProvider>
-                        <div className="flex min-h-screen flex-col">
-                          {children}
-                        </div>
-                      </CartContextProvider>
-                    </AuthProvider>
-                  </Suspense>
-                </div>
-              </main>
-            </div>
-            <Footer />
-            <MobileMenu />
-          </StackProvider>
-        </Providers>
+          </main>
+        </div>
+        <Footer />
       </body>
     </html>
   )
