@@ -20,6 +20,7 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_MEDUSA_BACKEND_URL: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "https://backend-production-1aec.up.railway.app",
+    MEDUSA_BACKEND_URL: process.env.MEDUSA_BACKEND_URL || process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "https://backend-production-1aec.up.railway.app",
   },
   images: {
     remotePatterns: [
@@ -44,6 +45,15 @@ const nextConfig = {
         hostname: "backend-production-1aec.up.railway.app",
       },
     ],
+  },
+  // Increase timeout for static generation
+  staticPageGenerationTimeout: 180,
+  // Add error handling for runtime errors
+  onDemandEntries: {
+    // Keep in memory for longer between builds
+    maxInactiveAge: 25 * 1000,
+    // Number of pages to keep in memory
+    pagesBufferLength: 5,
   },
 }
 
