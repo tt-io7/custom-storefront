@@ -1,4 +1,7 @@
-import "styles/globals.css"
+import { Suspense } from "react"
+
+import { Inter } from "next/font/google"
+import "./globals.css"
 // TODO: Port these providers and components to the starter and update import paths accordingly
 // import { WishlistProvider } from "../modules/wishlist/context"
 // import { StoreProvider } from "../modules/store/context"
@@ -7,8 +10,11 @@ import "styles/globals.css"
 // import { AuthProvider } from "../modules/account/context"
 // import ErrorBoundary from "../modules/common/components/ErrorBoundary"
 // import Header from "../modules/layout/components/Header"
-// import Footer from "../modules/layout/components/Footer"
-// import ClientOnly from "../modules/common/components/ClientOnly"
+import Footer from "@modules/layout/templates/footer"
+import MobileMenu from "@modules/mobile-menu/templates"
+import Providers from "@modules/providers"
+import { StackProvider } from "app/[countryCode]/stack-provider"
+import LoadingBar from "@modules/common/components/loading-bar"
 
 export const metadata = {
   title: {
@@ -47,9 +53,19 @@ export const metadata = {
 import { CartContextProvider } from "../modules/layout/context/cart-context"
 import { AuthProvider } from "../modules/layout/lib/context/auth-context"
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+})
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" data-mode="light" className="scroll-smooth">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <meta name="theme-color" content="#9370DB" />
@@ -84,14 +100,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }
         `}</style>
       </head>
-      <body className="antialiased font-sans bg-background text-foreground min-h-screen selection:bg-primary/20 selection:text-primary-dark">
-        <AuthProvider>
-          <CartContextProvider>
-            <div className="flex min-h-screen flex-col">
-              {children}
+      <body className={`${inter.variable} relative min-h-screen w-full overflow-x-hidden bg-ui-bg-base font-sans antialiased`}>
+        <Providers>
+          <StackProvider>
+            <div className="sticky top-0 z-50">
+              <LoadingBar />
             </div>
-          </CartContextProvider>
-        </AuthProvider>
+            <div className="pb-[8rem]">
+              <main>
+                <div>
+                  <Suspense>
+                    <AuthProvider>
+                      <CartContextProvider>
+                        <div className="flex min-h-screen flex-col">
+                          {children}
+                        </div>
+                      </CartContextProvider>
+                    </AuthProvider>
+                  </Suspense>
+                </div>
+              </main>
+            </div>
+            <Footer />
+            <MobileMenu />
+          </StackProvider>
+        </Providers>
       </body>
     </html>
   )

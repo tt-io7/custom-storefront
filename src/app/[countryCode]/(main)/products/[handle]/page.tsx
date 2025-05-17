@@ -104,11 +104,26 @@ export default async function ProductPage(props: Props) {
       )
     }
 
+    // Fetch product reviews
+    const reviews = await fetch(
+      `${process.env.MEDUSA_BACKEND_URL}/store/products/${pricedProduct.id}/reviews`,
+      {
+        headers: {
+          "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+        },
+        next: { revalidate: 60 },
+      }
+    )
+      .then(res => res.json())
+      .then(data => data.reviews || [])
+      .catch(() => [])
+
     return (
       <ProductTemplate
         product={pricedProduct}
         region={region}
         countryCode={params.countryCode}
+        reviews={reviews}
       />
     )
   } catch (error) {

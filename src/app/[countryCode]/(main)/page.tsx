@@ -1,41 +1,62 @@
 import { Metadata } from "next"
+import { HttpTypes } from "@medusajs/types"
 
 import FeaturedProducts from "@modules/home/components/featured-products"
 import Hero from "@modules/home/components/hero"
 import { listCollections } from "@lib/data/collections"
+import { listProducts } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 
 export const metadata: Metadata = {
-  title: "Medusa Next.js Starter Template",
+  title: "Home",
   description:
-    "A performant frontend ecommerce starter template with Next.js 15 and Medusa.",
+    "Shop all available models only at the AndMore. Worldwide Shipping. Secure Payment.",
 }
 
-export default async function Home(props: {
-  params: Promise<{ countryCode: string }>
+export default async function Home({
+  params,
+}: {
+  params: { countryCode: string }
 }) {
-  const params = await props.params
+  const region = await getRegion(params.countryCode)
 
-  const { countryCode } = params
+  if (!region) {
+    throw new Error("Region not found")
+  }
 
-  const region = await getRegion(countryCode)
-
+  // Get collections and featured products
   const { collections } = await listCollections({
-    fields: "id, handle, title",
+    fields: "*products",
+    limit: "1",
   })
 
-  if (!collections || !region) {
-    return null
+  let featuredProducts: HttpTypes.StoreProduct[] = []
+  
+  if (collections[0]?.products?.length) {
+    // Get the featured products details
+    const productIds = collections[0].products.slice(0, 8).map((p: any) => p.id)
+    
+    // Use proper format for listProducts API - pass ID as array
+    const { response } = await listProducts({
+      countryCode: params.countryCode,
+      queryParams: { 
+        limit: 8
+      },
+    })
+    
+    featuredProducts = response.products.slice(0, 8)
   }
 
   return (
     <>
       <Hero />
-      <div className="py-12">
-        <ul className="flex flex-col gap-x-6">
-          <FeaturedProducts collections={collections} region={region} />
-        </ul>
-      </div>
+      {featuredProducts.length > 0 && (
+        <FeaturedProducts 
+          products={featuredProducts} 
+          region={region} 
+          countryCode={params.countryCode}
+        />
+      )}
     </>
   )
 }
