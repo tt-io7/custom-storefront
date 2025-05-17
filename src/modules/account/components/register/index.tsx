@@ -7,7 +7,7 @@ import ErrorMessage from "@modules/checkout/components/error-message"
 import { SubmitButton } from "@modules/checkout/components/submit-button"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { signup } from "@lib/data/customer"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
 type Props = {
   setCurrentView: (view: LOGIN_VIEW) => void
@@ -15,6 +15,7 @@ type Props = {
 
 const Register = ({ setCurrentView }: Props) => {
   const [message, formAction] = useActionState(signup, null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Transform the error message into a more user-friendly format
   const errorMessage = useMemo(() => {
@@ -25,8 +26,24 @@ const Register = ({ setCurrentView }: Props) => {
       return 'An account with this email already exists. Please sign in instead.'
     }
     
+    if (typeof message === 'string' && message.includes('Invalid credentials')) {
+      return 'Invalid email or password format. Please check your information and try again.'
+    }
+    
+    if (typeof message === 'string' && message.includes('Connection')) {
+      return 'Connection error. The server might be temporarily unavailable. Please try again in a moment.'
+    }
+    
     return message
   }, [message])
+  
+  // Handle form submission to show loading state
+  const handleSubmit = (formData: FormData) => {
+    setIsSubmitting(true)
+    return formAction(formData).finally(() => {
+      setIsSubmitting(false)
+    })
+  }
 
   return (
     <div
@@ -40,7 +57,7 @@ const Register = ({ setCurrentView }: Props) => {
         Create your Medusa Store Member profile, and get access to an enhanced
         shopping experience.
       </p>
-      <form className="w-full flex flex-col" action={formAction}>
+      <form className="w-full flex flex-col" action={handleSubmit}>
         <div className="flex flex-col w-full gap-y-2">
           <Input
             label="First name"
@@ -48,6 +65,7 @@ const Register = ({ setCurrentView }: Props) => {
             required
             autoComplete="given-name"
             data-testid="first-name-input"
+            disabled={isSubmitting}
           />
           <Input
             label="Last name"
@@ -55,6 +73,7 @@ const Register = ({ setCurrentView }: Props) => {
             required
             autoComplete="family-name"
             data-testid="last-name-input"
+            disabled={isSubmitting}
           />
           <Input
             label="Email"
@@ -63,6 +82,7 @@ const Register = ({ setCurrentView }: Props) => {
             type="email"
             autoComplete="email"
             data-testid="email-input"
+            disabled={isSubmitting}
           />
           <Input
             label="Phone"
@@ -70,6 +90,7 @@ const Register = ({ setCurrentView }: Props) => {
             type="tel"
             autoComplete="tel"
             data-testid="phone-input"
+            disabled={isSubmitting}
           />
           <Input
             label="Password"
@@ -78,6 +99,7 @@ const Register = ({ setCurrentView }: Props) => {
             type="password"
             autoComplete="new-password"
             data-testid="password-input"
+            disabled={isSubmitting}
           />
         </div>
         <ErrorMessage error={errorMessage} data-testid="register-error" />
@@ -98,8 +120,8 @@ const Register = ({ setCurrentView }: Props) => {
           </LocalizedClientLink>
           .
         </span>
-        <SubmitButton className="w-full mt-6" data-testid="register-button">
-          Join
+        <SubmitButton className="w-full mt-6" data-testid="register-button" disabled={isSubmitting}>
+          {isSubmitting ? "Creating account..." : "Join"}
         </SubmitButton>
       </form>
       <span className="text-center text-ui-fg-base text-small-regular mt-6">
@@ -107,6 +129,7 @@ const Register = ({ setCurrentView }: Props) => {
         <button
           onClick={() => setCurrentView(LOGIN_VIEW.SIGN_IN)}
           className="underline"
+          disabled={isSubmitting}
         >
           Sign in
         </button>

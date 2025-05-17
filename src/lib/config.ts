@@ -12,15 +12,15 @@ if (process.env.MEDUSA_BACKEND_URL) {
 // Get the API key from environment variables
 const PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
-// Timeout for requests to Medusa server
-const REQUEST_TIMEOUT = 10000 // 10 seconds 
+// Increase timeout for requests to Medusa server
+const REQUEST_TIMEOUT = 30000 // 30 seconds
 
 // Initialize the SDK client with error handling
 export const sdk = new Medusa({
   baseUrl: MEDUSA_BACKEND_URL,
   debug: process.env.NODE_ENV === "development",
   publishableKey: PUBLISHABLE_API_KEY,
-  maxRetries: 3,
+  maxRetries: 5,
   timeout: REQUEST_TIMEOUT,
 })
 
@@ -28,10 +28,18 @@ export const sdk = new Medusa({
 const originalFetch = sdk.client.fetch.bind(sdk.client)
 sdk.client.fetch = async function wrappedFetch<T>(path: string, options: any = {}): Promise<T> {
   try {
-    return await originalFetch<T>(path, {
+    console.log(`Fetching ${path}...`)
+    const startTime = Date.now()
+    
+    const result = await originalFetch<T>(path, {
       ...options,
       timeout: REQUEST_TIMEOUT,
-    }) 
+    })
+    
+    const duration = Date.now() - startTime
+    console.log(`Fetched ${path} in ${duration}ms`)
+    
+    return result
   } catch (error) {
     console.error(`Error fetching ${path}:`, error)
     
@@ -43,11 +51,26 @@ sdk.client.fetch = async function wrappedFetch<T>(path: string, options: any = {
             id: "fallback_region",
             name: "Fallback Region",
             countries: [
-              { id: "us", iso_2: "us", display_name: "United States" }
+              { id: "dk", iso_2: "dk", display_name: "Denmark" }
             ]
           }
         ]
       } as unknown as T
+    }
+    
+    // Handle auth-related endpoints with clearer error messages
+    if (path.includes('/store/auth') || path.includes('/store/customers')) {
+      if (error.toString().includes('timeout')) {
+        throw new Error('Connection to authentication service timed out. Please try again later.')
+      }
+      
+      if (error.toString().includes('429')) {
+        throw new Error('Too many authentication attempts. Please try again later.')
+      }
+      
+      if (error.toString().includes('401') || error.toString().includes('403')) {
+        throw new Error('Invalid credentials. Please check your email and password.')
+      }
     }
     
     // Re-throw the error for other endpoints

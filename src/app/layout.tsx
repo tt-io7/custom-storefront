@@ -51,9 +51,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="scroll-smooth">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <meta name="theme-color" content="#9370DB" />
         <meta name="color-scheme" content="light" />
+        {/* Preconnect to backend */}
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || 'https://backend-production-1aec.up.railway.app'} />
+        {/* Hardware acceleration and performance optimization */}
         <style>{`
           body {
             -webkit-transform: translateZ(0);
@@ -61,6 +64,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             -ms-transform: translateZ(0);
             -o-transform: translateZ(0);
             transform: translateZ(0);
+            text-rendering: optimizeSpeed;
+            scroll-behavior: smooth;
+          }
+          
+          img, svg {
+            display: block;
+            max-width: 100%;
+          }
+          
+          /* Reduce animation for people who prefer reduced motion */
+          @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              transition-duration: 0.01ms !important;
+              scroll-behavior: auto !important;
+            }
           }
         `}</style>
       </head>

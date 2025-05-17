@@ -4,6 +4,7 @@ import ErrorMessage from "@modules/checkout/components/error-message"
 import { SubmitButton } from "@modules/checkout/components/submit-button"
 import Input from "@modules/common/components/input"
 import { useActionState } from "react"
+import { useState } from "react"
 
 type Props = {
   setCurrentView: (view: LOGIN_VIEW) => void
@@ -11,6 +12,22 @@ type Props = {
 
 const Login = ({ setCurrentView }: Props) => {
   const [message, formAction] = useActionState(login, null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Format error message for better UX
+  const formattedMessage = message 
+    ? (typeof message === 'string' && message.includes('Connection')) 
+      ? "Connection error. The server might be temporarily unavailable. Please try again in a moment."
+      : message
+    : null
+
+  // Handle the form submission to show loading state
+  const handleSubmit = (formData: FormData) => {
+    setIsSubmitting(true)
+    return formAction(formData).finally(() => {
+      setIsSubmitting(false)
+    })
+  }
 
   return (
     <div
@@ -21,7 +38,7 @@ const Login = ({ setCurrentView }: Props) => {
       <p className="text-center text-base-regular text-ui-fg-base mb-8">
         Sign in to access an enhanced shopping experience.
       </p>
-      <form className="w-full" action={formAction}>
+      <form className="w-full" action={handleSubmit}>
         <div className="flex flex-col w-full gap-y-2">
           <Input
             label="Email"
@@ -31,6 +48,7 @@ const Login = ({ setCurrentView }: Props) => {
             autoComplete="email"
             required
             data-testid="email-input"
+            disabled={isSubmitting}
           />
           <Input
             label="Password"
@@ -39,11 +57,12 @@ const Login = ({ setCurrentView }: Props) => {
             autoComplete="current-password"
             required
             data-testid="password-input"
+            disabled={isSubmitting}
           />
         </div>
-        <ErrorMessage error={message} data-testid="login-error-message" />
-        <SubmitButton data-testid="sign-in-button" className="w-full mt-6">
-          Sign in
+        <ErrorMessage error={formattedMessage} data-testid="login-error-message" />
+        <SubmitButton data-testid="sign-in-button" className="w-full mt-6" disabled={isSubmitting}>
+          {isSubmitting ? "Signing in..." : "Sign in"}
         </SubmitButton>
       </form>
       <span className="text-center text-ui-fg-base text-small-regular mt-6">
@@ -52,6 +71,7 @@ const Login = ({ setCurrentView }: Props) => {
           onClick={() => setCurrentView(LOGIN_VIEW.REGISTER)}
           className="underline"
           data-testid="register-button"
+          disabled={isSubmitting}
         >
           Join us
         </button>
