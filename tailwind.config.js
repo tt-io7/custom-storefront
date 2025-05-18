@@ -120,6 +120,13 @@ module.exports = {
           "Ubuntu",
           "sans-serif",
         ],
+        serif: [
+          "Georgia",
+          "Cambria",
+          "Times New Roman",
+          "Times",
+          "serif",
+        ],
       },
       keyframes: {
         ring: {
@@ -191,6 +198,20 @@ module.exports = {
           "0%": { transform: "translateY(-100%)" },
           "100%": { transform: "translateY(0)" },
         },
+        "spin-slow": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+        "pulse-subtle": {
+          "0%": { opacity: 0.8, transform: "scale(1)" },
+          "50%": { opacity: 1, transform: "scale(1.05)" },
+          "100%": { opacity: 0.8, transform: "scale(1)" },
+        },
+        "float": {
+          "0%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-10px)" },
+          "100%": { transform: "translateY(0px)" },
+        },
       },
       animation: {
         ring: "ring 2.2s cubic-bezier(0.5, 0, 0.5, 1) infinite",
@@ -206,6 +227,16 @@ module.exports = {
         enter: "enter 200ms ease-out",
         "slide-in": "slide-in 1.2s cubic-bezier(.41,.73,.51,1.02)",
         leave: "leave 150ms ease-in forwards",
+        "spin-slow": "spin-slow 8s linear infinite",
+        "pulse-subtle": "pulse-subtle 3s ease-in-out infinite",
+        "float": "float 5s ease-in-out infinite",
+      },
+      backgroundImage: {
+        "grid-white": 
+          "linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)",
+      },
+      backgroundSize: {
+        "grid": "24px 24px",
       },
     },
   },

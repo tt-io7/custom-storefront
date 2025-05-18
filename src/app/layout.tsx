@@ -2,10 +2,16 @@ import { Suspense } from "react"
 
 import { Inter } from "next/font/google"
 import "../styles/globals.css"
-import Footer from "@modules/layout/templates/footer"
 import { CartContextProvider } from "../modules/layout/context/cart-context"
 import { AuthProvider } from "../modules/layout/lib/context/auth-context"
 import LoadingBar from "@modules/common/components/loading-bar"
+import dynamic from "next/dynamic"
+
+// Import MedusaProvider dynamically to avoid SSR issues
+const MedusaClientProvider = dynamic(
+  () => import("../lib/medusa-provider"),
+  { ssr: false }
+)
 
 export const metadata = {
   title: {
@@ -98,16 +104,17 @@ export default async function RootLayout({
               <Suspense>
                 <AuthProvider>
                   <CartContextProvider>
-                    <div className="flex min-h-screen flex-col">
-                      {children}
-                    </div>
+                    <MedusaClientProvider>
+                      <div className="flex min-h-screen flex-col">
+                        {children}
+                      </div>
+                    </MedusaClientProvider>
                   </CartContextProvider>
                 </AuthProvider>
               </Suspense>
             </div>
           </main>
         </div>
-        <Footer />
       </body>
     </html>
   )

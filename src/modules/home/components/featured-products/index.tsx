@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { HttpTypes } from "@medusajs/types"
-import ProductPreview from "@modules/products/components/product-preview"
 import { ChevronRightMini } from "@medusajs/icons"
+import { motion } from "framer-motion"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import ProductCard from "@modules/products/components/ProductCard"
 
 type FeaturedProductsProps = {
   products: HttpTypes.StoreProduct[]
@@ -12,63 +13,172 @@ type FeaturedProductsProps = {
   countryCode: string
 }
 
+// Simple product type that matches ProductCard expectations
+interface SimpleProduct {
+  id: string
+  title: string
+  description?: string
+  thumbnail?: string
+  handle: string
+  variants: {
+    id: string
+    title: string
+    prices: {
+      amount: number
+      currency_code: string
+    }[]
+  }[]
+}
+
 const FeaturedProducts = ({ products, region, countryCode }: FeaturedProductsProps) => {
-  const [isVisible, setIsVisible] = useState(false)
+  const [activeCategory, setActiveCategory] = useState("all")
   
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true)
-    }, 100)
+  // Example categories - in a real app, you would derive these from your products
+  const categories = [
+    { id: "all", name: "All Products" },
+    { id: "featured", name: "Featured" },
+    { id: "new", name: "New Arrivals" },
+    { id: "bestsellers", name: "Bestsellers" }
+  ]
+  
+  // Filter products by category (simplified example)
+  const filteredProducts = activeCategory === "all" 
+    ? products 
+    : products.slice(0, 4) // Just for demo, in real app you'd filter by category
+  
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  }
+  
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  }
+  
+  // Transform products for ProductCard compatibility
+  const transformedProducts: SimpleProduct[] = filteredProducts.map(product => {
+    // Get the first variant
+    const firstVariant = product.variants?.[0] || null
     
-    return () => clearTimeout(timer)
-  }, [])
+    // Create a simple version with mandatory fields for ProductCard
+    return {
+      id: product.id,
+      title: product.title || "",
+      description: product.description || "",
+      thumbnail: product.thumbnail || undefined,
+      handle: product.handle,
+      variants: [{
+        id: firstVariant?.id || "default",
+        title: firstVariant?.title || "Default",
+        prices: [{
+          // Use any available price or default to 0
+          amount: firstVariant ? 
+            // Access prices as an indexed property because of type limitations
+            (firstVariant as any).prices?.[0]?.amount || 0 : 0,
+          currency_code: firstVariant ? 
+            (firstVariant as any).prices?.[0]?.currency_code || region.currency_code 
+            : region.currency_code
+        }]
+      }]
+    }
+  })
   
   return (
-    <div className="py-12">
-      <div className="content-container py-12">
-        <div className="flex flex-col items-center text-center mb-16">
-          <span className="text-base font-semibold text-indigo-600 mb-2">
-            Demo Showcase
-          </span>
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+    <section className="py-16 bg-gradient-to-b from-white to-lilac-50">
+      <div className="content-container py-8 px-4 sm:px-6">
+        <div className="flex flex-col items-center text-center mb-12">
+          <motion.span 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-sm font-semibold text-primary px-4 py-1.5 bg-lilac-100 rounded-full mb-3"
+          >
+            Premium Collection
+          </motion.span>
+          
+          <motion.h2 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-3xl md:text-4xl font-bold text-gray-900 mb-4"
+          >
             Featured Products
-          </h2>
-          <p className="max-w-lg text-gray-600">
-            Discover our handpicked selection of premium tech products, showcasing the best in design and functionality.
-          </p>
+          </motion.h2>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="max-w-2xl text-gray-600 mb-8"
+          >
+            Discover our handpicked selection of premium tech products, showcasing the best in design and functionality for your digital lifestyle.
+          </motion.p>
+          
+          {/* Category tabs */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="flex flex-wrap justify-center gap-2 mb-8"
+          >
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategory(category.id)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  activeCategory === category.id
+                    ? "bg-primary text-white shadow-md"
+                    : "bg-white text-gray-600 hover:bg-lilac-50"
+                }`}
+              >
+                {category.name}
+              </button>
+            ))}
+          </motion.div>
         </div>
         
-        <ul className="grid grid-cols-2 small:grid-cols-3 medium:grid-cols-4 gap-x-4 gap-y-8">
-          {products.map((product, index) => (
-            <li 
+        {/* Product grid with animations */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+        >
+          {transformedProducts.map((product) => (
+            <motion.div 
               key={product.id}
-              className={`transition-all duration-700 transform ${
-                isVisible 
-                  ? "opacity-100 translate-y-0" 
-                  : "opacity-0 translate-y-12"
-              }`}
-              style={{ transitionDelay: `${index * 150}ms` }}
+              variants={itemVariants}
+              transition={{ duration: 0.5 }}
+              className="flex"
             >
-              <ProductPreview 
-                product={product} 
-                region={region} 
-                isFeatured={true} 
-              />
-            </li>
+              <ProductCard product={product} />
+            </motion.div>
           ))}
-        </ul>
+        </motion.div>
         
-        <div className="flex items-center justify-center mt-8">
+        {/* "View all" button with animation */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="flex justify-center mt-12"
+        >
           <LocalizedClientLink
             href={`/${countryCode}/store`}
-            className="flex items-center text-lg text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+            className="group flex items-center bg-white hover:bg-lilac-50 text-primary font-medium px-6 py-3 rounded-full shadow-sm transition-all hover:shadow-md"
           >
-            View all products
-            <ChevronRightMini className="ml-2" />
+            <span>Explore all products</span>
+            <span className="ml-2 transform transition-transform group-hover:translate-x-1">
+              <ChevronRightMini />
+            </span>
           </LocalizedClientLink>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </section>
   )
 }
 
